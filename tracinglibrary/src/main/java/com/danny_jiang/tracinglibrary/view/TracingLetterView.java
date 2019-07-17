@@ -332,6 +332,8 @@ public class TracingLetterView extends View {
                         anchorPos.set(point[0], point[1]);
                         invalidate();
                     }
+                    anchorPos.set(x, y);
+                    invalidate();
 
                     if (currentStokeProgress == points.size()
                             && currentStroke < strokeBean.strokes.size() - 1) {
