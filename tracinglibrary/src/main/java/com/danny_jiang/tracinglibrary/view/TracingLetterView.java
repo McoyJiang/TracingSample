@@ -221,16 +221,18 @@ public class TracingLetterView extends View {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
-    private float[] toPoint(String pointStr) {
-        String[] pointArray = pointStr.split(",");
-        return new float[]{Float.parseFloat(pointArray[0]) * viewWidth, Float.parseFloat(pointArray[1]) * viewHeight};
-    }
-
     private Path currentDrawingPath;
     private int currentStroke = 0;
     private int currentStokeProgress = 0;
     private List<Path> paths = new ArrayList<>();
     private boolean needInstruct = true;
+    private boolean letterTracingFinished = false;
+    private boolean hasFinishOneStroke = false;
+
+    private float[] toPoint(String pointStr) {
+        String[] pointArray = pointStr.split(",");
+        return new float[]{Float.parseFloat(pointArray[0]) * viewWidth, Float.parseFloat(pointArray[1]) * viewHeight};
+    }
 
     private boolean isValidPoint(String trackStr, float x, float y) {
         float[] points = toPoint(trackStr);
@@ -239,14 +241,25 @@ public class TracingLetterView extends View {
         return valid;
     }
 
+    private boolean overlapped(int x, int y) {
+        RectF touchPoint = new RectF(x, y, x + 20, y + 20);
+        Path touchPointPath = new Path();
+        touchPointPath.addRect(touchPoint, Path.Direction.CW);
+        touchPointPath.addCircle(x, y, 20, Path.Direction.CW);
+        touchPointPath.close();
+        Path hourPathCopy = new Path(pathToCheck);
+        hourPathCopy.op(touchPointPath, Path.Op.INTERSECT);
+        touchPointPath.reset();
+        RectF bounds = new RectF();
+        hourPathCopy.computeBounds(bounds, true);
+        return bounds.left != 0.0 && bounds.top != 0.0 && bounds.right != 0.0 && bounds.bottom != 0.0;
+    }
+
     private boolean isStartTracingPoint(String trackStr, float x, float y) {
         float[] points = toPoint(trackStr);
         return Math.abs(x - points[0]) < toleranceArea + 15
                 && Math.abs(y - points[1]) < toleranceArea + 15;
     }
-
-    private boolean finished = false;
-    private boolean hasFinishOneStroke = false;
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
@@ -264,20 +277,6 @@ public class TracingLetterView extends View {
                 break;
         }
         return super.dispatchTouchEvent(event);
-    }
-
-    private boolean overlapped(int x, int y) {
-        RectF touchPoint = new RectF(x, y, x + 20, y + 20);
-        Path touchPointPath = new Path();
-        touchPointPath.addRect(touchPoint, Path.Direction.CW);
-        touchPointPath.addCircle(x, y, 20, Path.Direction.CW);
-        touchPointPath.close();
-        Path hourPathCopy = new Path(pathToCheck);
-        hourPathCopy.op(touchPointPath, Path.Op.INTERSECT);
-        touchPointPath.reset();
-        RectF bounds = new RectF();
-        hourPathCopy.computeBounds(bounds, true);
-        return bounds.left != 0.0 && bounds.top != 0.0 && bounds.right != 0.0 && bounds.bottom != 0.0;
     }
 
     @Override
@@ -360,8 +359,8 @@ public class TracingLetterView extends View {
                         needInstruct = false;
                         currentStroke = 0;
 
-                        if (!finished) {
-                            finished = true;
+                        if (!letterTracingFinished) {
+                            letterTracingFinished = true;
                             anchorToSmall(new AnimatorListenerAdapter() {
                                 @Override
                                 public void onAnimationEnd(Animator animation) {
