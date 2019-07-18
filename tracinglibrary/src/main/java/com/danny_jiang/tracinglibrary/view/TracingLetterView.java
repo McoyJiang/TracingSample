@@ -232,8 +232,10 @@ public class TracingLetterView extends View {
 
     private boolean isValidPoint(String trackStr, float x, float y) {
         float[] points = toPoint(trackStr);
-        return Math.abs(x - points[0]) < toleranceArea
+        boolean valid = Math.abs(x - points[0]) < toleranceArea
                 && Math.abs(y - points[1]) < toleranceArea;
+        LogUtils.e("ABC", "valid is " + valid);
+        return valid;
     }
 
     private boolean isStartTracingPoint(String trackStr, float x, float y) {
@@ -295,14 +297,11 @@ public class TracingLetterView extends View {
                     currentStokeProgress++;
 
                     drawingCanvas.drawPath(currentDrawingPath, processingPaint);
-                    invalidate();
                 } else {
                     if (currentStokeProgress == points.size() && isValidPoint(points.get(currentStokeProgress - 1), x, y)) {
                         float[] point = toPoint(points.get(currentStokeProgress - 1));
                         currentDrawingPath.lineTo(point[0], point[1]);
                         drawingCanvas.drawPath(currentDrawingPath, processingPaint);
-                        anchorPos.set(point[0], point[1]);
-                        invalidate();
                     }
 
                     if (currentStokeProgress == points.size()
@@ -311,26 +310,16 @@ public class TracingLetterView extends View {
                         currentStokeProgress = 1;
                         paths.add(currentDrawingPath);
 
-                        float[] lastPoint = toPoint(points.get(currentStokeProgress - 1));
-                        anchorPos.set(lastPoint[0], lastPoint[1]);
+                        String stepStartStr = strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.get(0);
+                        float[] stepPoints = toPoint(stepStartStr);
+                        anchorPos.set(stepPoints[0], stepPoints[1]);
                         hasFinishOneStroke = true;
                         invalidate();
+                        return false;
                     }
                 }
                 anchorPos.set(x, y);
                 invalidate();
-                /**
-                 * since we can do tracing in one stroke or several strokes
-                 * so, no need to set point to the next step's starting point
-                 */
-                    /*float[] lastPoint = toPoint(points.get(currentStokeProgress - 1));
-                    path.lineTo(lastPoint[0], lastPoint[1]);
-
-                    if (!instructMode) {
-                        mPoint.set(lastPoint[0], lastPoint[1]);
-                    }
-                    drawingCanvas.drawPath(path, drawingPaint);
-                    invalidate();*/
                 break;
             case MotionEvent.ACTION_UP:
                 LogUtils.i(TAG, "event: up");
