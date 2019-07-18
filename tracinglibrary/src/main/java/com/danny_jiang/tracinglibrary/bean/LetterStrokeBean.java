@@ -20,4 +20,8 @@ public class LetterStrokeBean {
     public static class Strokes {
         public List<String> points;
     }
+
+    public List<String> getCurrentStrokePoints(int currentStroke) {
+        return strokes.get(currentStroke).points;
+    }
 }
