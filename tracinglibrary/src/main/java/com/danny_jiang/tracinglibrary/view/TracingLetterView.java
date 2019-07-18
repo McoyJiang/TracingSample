@@ -25,6 +25,7 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Region;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -136,9 +137,6 @@ public class TracingLetterView extends View {
             stream = getContext().getAssets().open(strokeAssets);
             Gson gson = new Gson();
             strokeBean = gson.fromJson(new InputStreamReader(stream), LetterStrokeBean.class);
-
-            Path path = createPath(strokeBean.strokes.get(currentStroke).points);
-            setupPathAnimation(path);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -154,6 +152,8 @@ public class TracingLetterView extends View {
 
     }
 
+    private Path pathToCheck;
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         if (viewWidth == -1 || viewHeight == -1) {
@@ -167,6 +167,8 @@ public class TracingLetterView extends View {
                 String[] pointArray = pointStr.split(",");
                 letterStarterPos.set((float) (viewWidth * Double.valueOf(pointArray[0])), (float) (viewHeight * Double.valueOf(pointArray[1])));
                 anchorPos.set(letterStarterPos);
+
+                pathToCheck = createPath(strokeBean.strokes.get(currentStroke).points);
             }
         }
     }
@@ -234,7 +236,6 @@ public class TracingLetterView extends View {
         float[] points = toPoint(trackStr);
         boolean valid = Math.abs(x - points[0]) < toleranceArea
                 && Math.abs(y - points[1]) < toleranceArea;
-        LogUtils.e("ABC", "valid is " + valid);
         return valid;
     }
 
@@ -265,10 +266,29 @@ public class TracingLetterView extends View {
         return super.dispatchTouchEvent(event);
     }
 
+    private boolean overlapped(int x, int y) {
+        RectF touchPoint = new RectF(x, y, x + 20, y + 20);
+        Path touchPointPath = new Path();
+        touchPointPath.addRect(touchPoint, Path.Direction.CW);
+        touchPointPath.addCircle(x, y, 20, Path.Direction.CW);
+        touchPointPath.close();
+        Path hourPathCopy = new Path(pathToCheck);
+        hourPathCopy.op(touchPointPath, Path.Op.INTERSECT);
+        touchPointPath.reset();
+        RectF bounds = new RectF();
+        hourPathCopy.computeBounds(bounds, true);
+        return bounds.left != 0.0 && bounds.top != 0.0 && bounds.right != 0.0 && bounds.bottom != 0.0;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getX();
         float y = event.getY();
+        if (overlapped((int) x, (int) y)) {
+            LogUtils.i("ABC", "overlap true");
+        } else {
+            LogUtils.i("ABC", "overlap false");
+        }
 
         List<String> points = strokeBean.getCurrentStrokePoints(currentStroke);
         String[] pointStr = points.get(0).split(",");
@@ -287,15 +307,16 @@ public class TracingLetterView extends View {
                 break;
             case MotionEvent.ACTION_MOVE:
                 LogUtils.i(TAG, "event: move");
-                if (currentStokeProgress < points.size() && isValidPoint(points.get(currentStokeProgress), x, y)) {
+                if (currentStokeProgress < points.size() && overlapped((int)x, (int)y)) {
+                    if(isValidPoint(points.get(currentStokeProgress), x, y)) currentStokeProgress++;
+
                     float[] point = toPoint(points.get(currentStokeProgress - 1));
                     if (needInstruct) {
                         currentDrawingPath.lineTo(point[0], point[1]);
+                        //currentDrawingPath.lineTo(x, y);
                     } else {
                         currentDrawingPath.lineTo(x, y);
                     }
-                    currentStokeProgress++;
-
                     drawingCanvas.drawPath(currentDrawingPath, processingPaint);
                 } else {
                     if (currentStokeProgress == points.size() && isValidPoint(points.get(currentStokeProgress - 1), x, y)) {
@@ -306,9 +327,10 @@ public class TracingLetterView extends View {
 
                     if (currentStokeProgress == points.size()
                             && currentStroke < strokeBean.strokes.size() - 1) {
-                        currentStroke++;
-                        currentStokeProgress = 1;
                         paths.add(currentDrawingPath);
+                        currentStroke++;
+                        pathToCheck = createPath(strokeBean.strokes.get(currentStroke).points);
+                        currentStokeProgress = 1;
 
                         String stepStartStr = strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.get(0);
                         float[] stepPoints = toPoint(stepStartStr);
@@ -488,6 +510,7 @@ public class TracingLetterView extends View {
                 super.onAnimationEnd(animation);
                 List<String> points = strokeBean.getCurrentStrokePoints(currentStroke);
                 float[] startPoint = toPoint(points.get(0));
+                pathToCheck = createPath(strokeBean.strokes.get(currentStroke).points);
                 anchorScale = scale * 1.2f;
                 anchorPos.set(startPoint[0], startPoint[1]);
                 invalidate();
