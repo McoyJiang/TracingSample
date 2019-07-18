@@ -524,6 +524,7 @@ public class TracingLetterView extends View {
                 List<String> points = strokeBean.getCurrentStrokePoints(currentStroke);
                 float[] startPoint = toPoint(points.get(0));
                 pathToCheck = createPath(strokeBean.strokes.get(currentStroke).points);
+                setupPathAnimation(pathToCheck);
                 anchorScale = scale * 1.2f;
                 anchorPos.set(startPoint[0], startPoint[1]);
                 invalidate();
