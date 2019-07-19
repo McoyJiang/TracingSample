@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -55,6 +56,7 @@ public class TracingLetterView extends View {
 
     private Paint mPaint;
     private Paint processingPaint;
+    private Paint pointPaint;
     private Bitmap anchorBitmap;
     private Bitmap letterBitmap;
     private Bitmap drawingBp;
@@ -88,6 +90,14 @@ public class TracingLetterView extends View {
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
+
+        pointPaint = new Paint();
+        pointPaint.setAntiAlias(true);
+        pointPaint.setStrokeWidth(15);
+        pointPaint.setColor(Color.YELLOW);
+        pointPaint.setStyle(Paint.Style.STROKE);
+        pointPaint.setStrokeCap(Paint.Cap.ROUND);
+        pointPaint.setStrokeJoin(Paint.Join.ROUND);
 
         processingPaint = new Paint();
         processingPaint.setAntiAlias(true);
@@ -125,7 +135,7 @@ public class TracingLetterView extends View {
             Bitmap traceBitmap = getBitmapByAssetName(tracingAssets);
 
             Canvas canvas = new Canvas(letterBitmap);
-            canvas.drawBitmap(traceBitmap, 0, 0, mPaint);
+            //canvas.drawBitmap(traceBitmap, 0, 0, mPaint);
 
             traceBitmap.recycle();
 
@@ -168,7 +178,6 @@ public class TracingLetterView extends View {
                 letterStarterPos.set((float) (viewWidth * Double.valueOf(pointArray[0])), (float) (viewHeight * Double.valueOf(pointArray[1])));
                 anchorPos.set(letterStarterPos);
                 pathToCheck = createPath(strokeBean.strokes.get(currentStroke).points);
-                setupPathAnimation(pathToCheck);
             }
         }
     }
@@ -180,6 +189,7 @@ public class TracingLetterView extends View {
     private float scale = 0f;
     private float anchorScale = 0f;
 
+    private float[] pathPoints;
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -198,8 +208,8 @@ public class TracingLetterView extends View {
             drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
             processingPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
         }
-
         canvas.drawBitmap(drawingBp, 0, 0, mPaint);
+        canvas.drawPoints(pathPoints, pointPaint);
         // draw anchor
         scaleRect.set(
                 anchorPos.x - anchorBitmap.getWidth() * anchorScale / 2,
@@ -300,7 +310,6 @@ public class TracingLetterView extends View {
             case MotionEvent.ACTION_MOVE:
                 LogUtils.i(TAG, "event: move");
                 if (currentStokeProgress < points.size() && overlapped((int)x, (int)y)) {
-                    LogUtils.e("ABC", "111");
                     if(isValidPoint(points.get(currentStokeProgress), x, y)) currentStokeProgress++;
                     float[] point = toPoint(points.get(currentStokeProgress - 1));
                     if (needInstruct) {
@@ -310,7 +319,6 @@ public class TracingLetterView extends View {
                     }
                     drawingCanvas.drawPath(currentDrawingPath, processingPaint);
                 } else if (currentStokeProgress == points.size()) {
-                    LogUtils.e("ABC", "222");
                     if (isValidPoint(points.get(currentStokeProgress - 1), x, y)) {
                         float[] point = toPoint(points.get(currentStokeProgress - 1));
                         currentDrawingPath.lineTo(point[0], point[1]);
@@ -329,9 +337,23 @@ public class TracingLetterView extends View {
                         hasFinishOneStroke = true;
                         invalidate();
                         return false;
+                    } else {
+                        if (!letterTracingFinished) {
+                            letterTracingFinished = true;
+                            hasFinishOneStroke = true;
+                            if (listener != null) {
+                                listener.onFinish();
+                            }
+//                            anchorToSmall(new AnimatorListenerAdapter() {
+//                                @Override
+//                                public void onAnimationEnd(Animator animation) {
+//                                    super.onAnimationEnd(animation);
+//                                    outOffScreen();
+//                                }
+//                            });
+                        }
                     }
                 } else {
-                    LogUtils.e("ABC", "333");
                     String stepStartStr = strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.get(0);
                     float[] stepPoints = toPoint(stepStartStr);
                     anchorPos.set(stepPoints[0], stepPoints[1]);
@@ -350,77 +372,6 @@ public class TracingLetterView extends View {
                 break;
             case MotionEvent.ACTION_UP:
                 LogUtils.i(TAG, "event: up");
-                if (currentStokeProgress == points.size()) {
-
-                    paths.add(currentDrawingPath);
-                    if (currentStroke < strokeBean.strokes.size()) {
-                        currentStroke++;
-                    }
-
-                    if (currentStroke == strokeBean.strokes.size()) {
-                        mPaint.setColorFilter(new PorterDuffColorFilter(Color.parseColor("#DA609F"),
-                                PorterDuff.Mode.SRC_ATOP));
-                        invalidate();
-
-                        needInstruct = false;
-                        currentStroke = 0;
-
-                        if (!letterTracingFinished) {
-                            letterTracingFinished = true;
-                            anchorToSmall(new AnimatorListenerAdapter() {
-                                @Override
-                                public void onAnimationEnd(Animator animation) {
-                                    super.onAnimationEnd(animation);
-                                    outOffScreen();
-                                }
-                            });
-                        } else {
-                            anchorToSmall(null);
-                            postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (listener != null) {
-                                        listener.onFinish();
-                                        listener = null;
-                                    }
-                                }
-                            }, 1500);
-
-                        }
-                    } else if (needInstruct && drawingCanvas != null) {
-                        String stepStartStr = strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.get(0);
-                        float[] stepPoints = toPoint(stepStartStr);
-                        anchorPos.set(stepPoints[0], stepPoints[1]);
-
-                        /**
-                         * deal with some track path just a point
-                         */
-                        if (strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.size() == 1) {
-                            invalidate();
-                        }
-
-                    } else {
-                        // for stroke correct
-                        String stepStartStr = strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.get(0);
-                        float[] stepPoints = toPoint(stepStartStr);
-                        anchorPos.set(stepPoints[0], stepPoints[1]);
-                        invalidate();
-                    }
-
-                } else {
-                    //anchorPos.set(startPoint[0], startPoint[1]);
-                    //anchorPos.set(x, y);
-//                    this.startPoint.x = anchorPos.x;
-//                    this.startPoint.y = anchorPos.y;
-//                    drawingCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
-//                    drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
-//                    for (Path item : paths) {
-//                        drawingCanvas.drawPath(item, processingPaint);
-//                    }
-//                    invalidate();
-                }
-                //currentStokeProgress = 0;
-
                 break;
         }
         return true;
@@ -471,19 +422,26 @@ public class TracingLetterView extends View {
     public Path createPath(List<String> pathStr) {
         Path path = new Path();
         path.setFillType(Path.FillType.WINDING);
+        List<Float> points = new ArrayList<>();
         for (int i = 0; i < pathStr.size(); i++) {
             String item = pathStr.get(i);
             String[] pointArray = item.split(",");
+            float x = (float) (viewWidth * Double.valueOf(pointArray[0]));
+            float y = (float) (viewHeight * Double.valueOf(pointArray[1]));
+            points.add(x);
+            points.add(y);
             if (i == 0) {
-                path.moveTo((float) (viewWidth * Double.valueOf(pointArray[0])), (float) (viewHeight * Double.valueOf(pointArray[1])));
+                path.moveTo(x, y);
             } else if (i == pathStr.size() - 1) {
-                path.setLastPoint((float) (viewWidth * Double.valueOf(pointArray[0])), (float) (viewHeight * Double.valueOf(pointArray[1])));
+                path.setLastPoint(x, y);
             } else {
-                path.lineTo((float) (viewWidth * Double.valueOf(pointArray[0])), (float) (viewHeight * Double.valueOf(pointArray[1])));
+                path.lineTo(x, y);
             }
-
         }
-
+        pathPoints = new float[points.size()];
+        for(int i = 0; i < pathPoints.length; i++){
+            pathPoints[i] = points.get(i);
+        }
         return path;
     }
 
@@ -519,7 +477,6 @@ public class TracingLetterView extends View {
                 List<String> points = strokeBean.getCurrentStrokePoints(currentStroke);
                 float[] startPoint = toPoint(points.get(0));
                 pathToCheck = createPath(strokeBean.strokes.get(currentStroke).points);
-                setupPathAnimation(pathToCheck);
                 anchorScale = scale * 1.2f;
                 anchorPos.set(startPoint[0], startPoint[1]);
                 invalidate();
