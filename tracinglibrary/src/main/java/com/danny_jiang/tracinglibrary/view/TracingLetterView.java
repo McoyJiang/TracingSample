@@ -132,12 +132,12 @@ public class TracingLetterView extends View {
         try {
             anchorBitmap = getBitmapByAssetName("crayon.png");
             letterBitmap = getBitmapByAssetName(letterAssets);
-            Bitmap traceBitmap = getBitmapByAssetName(tracingAssets);
+//            Bitmap traceBitmap = getBitmapByAssetName(tracingAssets);
 
-            Canvas canvas = new Canvas(letterBitmap);
+//            Canvas canvas = new Canvas(letterBitmap);
             //canvas.drawBitmap(traceBitmap, 0, 0, mPaint);
 
-            traceBitmap.recycle();
+//            traceBitmap.recycle();
 
             letterRect = new Rect(0, 0, letterBitmap.getWidth(), letterBitmap.getHeight());
 
@@ -206,10 +206,15 @@ public class TracingLetterView extends View {
 
             viewRect.set(0, 0, viewWidth, viewHeight);
             drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
-            processingPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+            //processingPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
         }
-        canvas.drawBitmap(drawingBp, 0, 0, mPaint);
+        //canvas.drawBitmap(drawingBp, 0, 0, mPaint);
+        canvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
         canvas.drawPoints(pathPoints, pointPaint);
+        for (Path item : paths) {
+            canvas.drawPath(item, processingPaint);
+        }
+        if (currentDrawingPath != null) canvas.drawPath(currentDrawingPath, processingPaint);
         // draw anchor
         scaleRect.set(
                 anchorPos.x - anchorBitmap.getWidth() * anchorScale / 2,
@@ -317,7 +322,7 @@ public class TracingLetterView extends View {
                     } else {
                         currentDrawingPath.lineTo(x, y);
                     }
-                    drawingCanvas.drawPath(currentDrawingPath, processingPaint);
+                    //drawingCanvas.drawPath(currentDrawingPath, processingPaint);
                 } else if (currentStokeProgress == points.size()) {
                     if (isValidPoint(points.get(currentStokeProgress - 1), x, y)) {
                         float[] point = toPoint(points.get(currentStokeProgress - 1));
@@ -363,6 +368,7 @@ public class TracingLetterView extends View {
                         drawingCanvas.drawPath(item, processingPaint);
                     }
                     currentStokeProgress = -1;
+                    currentDrawingPath = null;
                     invalidate();
                     hasFinishOneStroke = true;
                     return false;
