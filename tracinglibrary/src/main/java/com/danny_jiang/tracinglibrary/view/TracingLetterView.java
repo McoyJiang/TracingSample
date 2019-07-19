@@ -223,7 +223,7 @@ public class TracingLetterView extends View {
 
     private Path currentDrawingPath;
     private int currentStroke = 0;
-    private int currentStokeProgress = 0;
+    private int currentStokeProgress = -1;
     private List<Path> paths = new ArrayList<>();
     private boolean needInstruct = true;
     private boolean letterTracingFinished = false;
@@ -261,19 +261,8 @@ public class TracingLetterView extends View {
                 && Math.abs(y - startPoint.y) < toleranceArea + 15;
     }
 
-    private boolean isStartTracingPoint(String trackStr, float x, float y) {
-        float[] points = toPoint(trackStr);
-        return Math.abs(x - points[0]) < toleranceArea + 15
-                && Math.abs(y - points[1]) < toleranceArea + 15;
-    }
-
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        if (currentStroke >= strokeBean.strokes.size()) {
-            LogUtils.i(TAG, "touch event break");
-            return false;
-        }
-
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 hasFinishOneStroke = false;
@@ -287,18 +276,18 @@ public class TracingLetterView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (currentStroke >= strokeBean.strokes.size()) {
+            LogUtils.i(TAG, "touch event break");
+            return false;
+        }
+
         float x = event.getX();
         float y = event.getY();
-        if (overlapped((int) x, (int) y)) {
-            LogUtils.i("ABC", "overlap true");
-        } else {
-            LogUtils.i("ABC", "overlap false");
-        }
 
         List<String> points = strokeBean.getCurrentStrokePoints(currentStroke);
         String[] pointStr = points.get(0).split(",");
-        float[] startPoint = new float[]{Float.parseFloat(pointStr[0]) * viewWidth,
-                Float.parseFloat(pointStr[1]) * viewHeight};
+//        float[] startPoint = new float[]{Float.parseFloat(pointStr[0]) * viewWidth,
+//                Float.parseFloat(pointStr[1]) * viewHeight};
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
@@ -307,8 +296,11 @@ public class TracingLetterView extends View {
                 }
                 LogUtils.i(TAG, "event: down");
                 currentDrawingPath = new Path();
-                currentDrawingPath.moveTo(startPoint[0], startPoint[1]);
-                currentStokeProgress = 1;
+                //currentDrawingPath.moveTo(startPoint[0], startPoint[1]);
+                currentDrawingPath.moveTo(startPoint.x, startPoint.y);
+                if (currentStokeProgress == -1) {
+                    currentStokeProgress = 1;
+                }
                 break;
             case MotionEvent.ACTION_MOVE:
                 LogUtils.i(TAG, "event: move");
@@ -319,7 +311,6 @@ public class TracingLetterView extends View {
                     float[] point = toPoint(points.get(currentStokeProgress - 1));
                     if (needInstruct) {
                         currentDrawingPath.lineTo(point[0], point[1]);
-                        //currentDrawingPath.lineTo(x, y);
                     } else {
                         currentDrawingPath.lineTo(x, y);
                     }
@@ -336,7 +327,7 @@ public class TracingLetterView extends View {
                         paths.add(currentDrawingPath);
                         currentStroke++;
                         pathToCheck = createPath(strokeBean.strokes.get(currentStroke).points);
-                        currentStokeProgress = 1;
+                        currentStokeProgress = -1;
 
                         String stepStartStr = strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.get(0);
                         float[] stepPoints = toPoint(stepStartStr);
