@@ -11,6 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         app:pointColor="@color/colorAccent"
+        app:instructionMode="false"
         app:strokeColor="@color/colorPrimary"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHeight_percent="0.8"

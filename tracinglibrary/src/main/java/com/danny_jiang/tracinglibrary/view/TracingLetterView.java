@@ -5,12 +5,8 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.res.AssetFileDescriptor;
-import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -23,14 +19,11 @@ import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Region;
 import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -48,7 +41,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -72,8 +64,8 @@ public class TracingLetterView extends View {
     private TracingListener listener;
     private int viewWidth = -1;
     private int viewHeight = -1;
+    private float validArea;
     private float toleranceArea;
-
 
     public TracingLetterView(Context context) {
         this(context, null);
@@ -110,9 +102,14 @@ public class TracingLetterView extends View {
         processingPaint.setColor(typedArray.getColor(R.styleable.TracingLetterView_strokeColor, Color.parseColor("#DA609F")));
 
         needInstruct = typedArray.getBoolean(R.styleable.TracingLetterView_instructionMode, true);
+        validArea = res.getDimension(R.dimen.dp_30);
+        if (needInstruct) {
+            toleranceArea = 60;
+        } else {
+            toleranceArea = 20;
+        }
         typedArray.recycle();
 
-        toleranceArea = res.getDimension(R.dimen.dp_30);
     }
 
     /**
@@ -248,7 +245,7 @@ public class TracingLetterView extends View {
     private int currentStroke = 0;
     private int currentStokeProgress = -1;
     private List<Path> paths = new ArrayList<>();
-    private boolean needInstruct = true;
+    private boolean needInstruct;
     private boolean letterTracingFinished = false;
     private boolean hasFinishOneStroke = false;
 
@@ -259,13 +256,14 @@ public class TracingLetterView extends View {
 
     private boolean isValidPoint(String trackStr, float x, float y) {
         float[] points = toPoint(trackStr);
-        boolean valid = Math.abs(x - points[0]) < toleranceArea
-                && Math.abs(y - points[1]) < toleranceArea;
+        boolean valid = Math.abs(x - points[0]) < validArea
+                && Math.abs(y - points[1]) < validArea;
         return valid;
     }
 
     private boolean overlapped(int x, int y) {
-        RectF touchPoint = new RectF(x - 60, y - 60, x + 60, y + 60);
+        RectF touchPoint = new RectF(x - toleranceArea, y - toleranceArea,
+                x + toleranceArea, y + toleranceArea);
         Path touchPointPath = new Path();
         touchPointPath.addRect(touchPoint, Path.Direction.CW);
         touchPointPath.addCircle(x, y, 20, Path.Direction.CW);
