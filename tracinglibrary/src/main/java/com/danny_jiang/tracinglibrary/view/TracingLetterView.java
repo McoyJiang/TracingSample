@@ -59,8 +59,6 @@ public class TracingLetterView extends View {
     private Paint pointPaint;
     private Bitmap anchorBitmap;
     private Bitmap letterBitmap;
-    private Bitmap drawingBp;
-    private Canvas drawingCanvas;
 
     private LetterStrokeBean strokeBean;
     private PointF letterStarterPos = new PointF();
@@ -132,15 +130,13 @@ public class TracingLetterView extends View {
         try {
             anchorBitmap = getBitmapByAssetName("crayon.png");
             letterBitmap = getBitmapByAssetName(letterAssets);
-//            Bitmap traceBitmap = getBitmapByAssetName(tracingAssets);
-
-//            Canvas canvas = new Canvas(letterBitmap);
-            //canvas.drawBitmap(traceBitmap, 0, 0, mPaint);
-
-//            traceBitmap.recycle();
+            /*
+            Bitmap traceBitmap = getBitmapByAssetName(tracingAssets);
+            Canvas canvas = new Canvas(letterBitmap);
+            canvas.drawBitmap(traceBitmap, 0, 0, mPaint);
+            traceBitmap.recycle();*/
 
             letterRect = new Rect(0, 0, letterBitmap.getWidth(), letterBitmap.getHeight());
-
 
             anchorRect = new Rect(0, 0, anchorBitmap.getWidth(), anchorBitmap.getHeight());
 
@@ -170,6 +166,12 @@ public class TracingLetterView extends View {
             viewWidth = getWidth();
             viewHeight = getHeight();
 
+            processingPaint.setStrokeWidth(viewHeight / 9f);
+            viewRect = new RectF();
+            scale = viewHeight / (letterBitmap.getHeight() * 1f);
+            anchorScale = scale * 1.2f;
+            viewRect.set(0, 0, viewWidth, viewHeight);
+
             // don't move the following code's to init()
             // because viewWidth and viewHeight not initialized
             if (strokeBean != null) {
@@ -195,20 +197,6 @@ public class TracingLetterView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (drawingBp == null) {
-            processingPaint.setStrokeWidth(viewHeight / 9f);
-            drawingBp = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
-            drawingCanvas = new Canvas(drawingBp);
-            viewRect = new RectF();
-
-            scale = viewHeight / (letterBitmap.getHeight() * 1f);
-            anchorScale = scale * 1.2f;
-
-            viewRect.set(0, 0, viewWidth, viewHeight);
-            drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
-            //processingPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-        }
-        //canvas.drawBitmap(drawingBp, 0, 0, mPaint);
         canvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
         canvas.drawPoints(pathPoints, pointPaint);
         for (Path item : paths) {
@@ -306,9 +294,9 @@ public class TracingLetterView extends View {
                     return false;
                 }
                 LogUtils.i(TAG, "event: down");
-                currentDrawingPath = new Path();
-                currentDrawingPath.moveTo(anchorPos.x, anchorPos.y);
                 if (currentStokeProgress == -1) {
+                    currentDrawingPath = new Path();
+                    currentDrawingPath.moveTo(anchorPos.x, anchorPos.y);
                     currentStokeProgress = 1;
                 }
                 break;
@@ -322,12 +310,10 @@ public class TracingLetterView extends View {
                     } else {
                         currentDrawingPath.lineTo(x, y);
                     }
-                    //drawingCanvas.drawPath(currentDrawingPath, processingPaint);
                 } else if (currentStokeProgress == points.size()) {
                     if (isValidPoint(points.get(currentStokeProgress - 1), x, y)) {
                         float[] point = toPoint(points.get(currentStokeProgress - 1));
                         currentDrawingPath.lineTo(point[0], point[1]);
-                        drawingCanvas.drawPath(currentDrawingPath, processingPaint);
                     }
 
                     if (currentStroke < strokeBean.strokes.size() - 1) {
@@ -362,11 +348,6 @@ public class TracingLetterView extends View {
                     String stepStartStr = strokeBean.strokes.get(currentStroke % strokeBean.strokes.size()).points.get(0);
                     float[] stepPoints = toPoint(stepStartStr);
                     anchorPos.set(stepPoints[0], stepPoints[1]);
-                    drawingCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
-                    drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
-                    for (Path item : paths) {
-                        drawingCanvas.drawPath(item, processingPaint);
-                    }
                     currentStokeProgress = -1;
                     currentDrawingPath = null;
                     invalidate();
@@ -467,8 +448,8 @@ public class TracingLetterView extends View {
                 letterBitmap = getBitmapByAssetName(letterAssets);
                 paths.clear();
                 mPaint.setColorFilter(null);
-                drawingCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
-                drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
+                //drawingCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                //drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
                 invalidate();
             }
         });
@@ -544,11 +525,6 @@ public class TracingLetterView extends View {
         if (letterBitmap != null) {
             letterBitmap.recycle();
             letterBitmap = null;
-        }
-
-        if (drawingBp != null) {
-            drawingBp.recycle();
-            drawingBp = null;
         }
     }
 
