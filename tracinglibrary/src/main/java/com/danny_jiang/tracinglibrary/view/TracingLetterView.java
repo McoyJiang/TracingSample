@@ -11,6 +11,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -26,6 +28,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Region;
+import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -81,10 +84,9 @@ public class TracingLetterView extends View {
 
     public TracingLetterView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
-    }
+        final TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.TracingLetterView);
+        final Resources res = getResources();
 
-    private void init() {
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
@@ -92,7 +94,7 @@ public class TracingLetterView extends View {
         pointPaint = new Paint();
         pointPaint.setAntiAlias(true);
         pointPaint.setStrokeWidth(15);
-        pointPaint.setColor(Color.YELLOW);
+        pointPaint.setColor(typedArray.getColor(R.styleable.TracingLetterView_pointColor, Color.YELLOW));
         pointPaint.setStyle(Paint.Style.STROKE);
         pointPaint.setStrokeCap(Paint.Cap.ROUND);
         pointPaint.setStrokeJoin(Paint.Join.ROUND);
@@ -104,9 +106,10 @@ public class TracingLetterView extends View {
         processingPaint.setStrokeCap(Paint.Cap.ROUND);
         processingPaint.setStrokeJoin(Paint.Join.ROUND);
         processingPaint.setPathEffect(new CornerPathEffect(ScreenUtils.getInstance().dpToPx(getContext(),60)));
-        processingPaint.setColor(Color.parseColor("#DA609F"));
+        processingPaint.setColor(typedArray.getColor(R.styleable.TracingLetterView_strokeColor, Color.parseColor("#DA609F")));
+        typedArray.recycle();
 
-        toleranceArea = getResources().getDimension(R.dimen.dp_30);
+        toleranceArea = res.getDimension(R.dimen.dp_30);
     }
 
     /**
@@ -172,7 +175,7 @@ public class TracingLetterView extends View {
             anchorScale = scale * 1.2f;
             viewRect.set(0, 0, viewWidth, viewHeight);
 
-            // don't move the following code's to init()
+            // don't move the following code's to constructor()
             // because viewWidth and viewHeight not initialized
             if (strokeBean != null) {
                 String pointStr = strokeBean.strokes.get(0).points.get(0);
@@ -222,6 +225,14 @@ public class TracingLetterView extends View {
             return;
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    public void setStrokeColor(@ColorInt int strokeColor) {
+        if (processingPaint != null) processingPaint.setColor(strokeColor);
+    }
+
+    public void setPointColor(@ColorInt int pointColor) {
+        if (pointPaint != null) pointPaint.setColor(pointColor);
     }
 
     private Path currentDrawingPath;

@@ -1,5 +1,6 @@
 package com.danny_jiang.tracingsample;
 
+import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.Toast;
@@ -18,6 +19,7 @@ public class MainActivity extends AppCompatActivity {
 
         letterView = findViewById(R.id.letter);
         letterView.setLetterChar(LetterFactory.A);
+        letterView.setPointColor(Color.BLUE);
         letterView.setListener(new TracingLetterView.TracingListener() {
             @Override
             public void onFinish() {
