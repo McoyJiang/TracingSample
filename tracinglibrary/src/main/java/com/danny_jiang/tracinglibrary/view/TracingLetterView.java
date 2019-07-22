@@ -62,6 +62,7 @@ public class TracingLetterView extends View {
     private Paint pointPaint;
     private Bitmap anchorBitmap;
     private Bitmap letterBitmap;
+    private Bitmap traceBitmap;
 
     private LetterStrokeBean strokeBean;
     private PointF letterStarterPos = new PointF();
@@ -107,6 +108,8 @@ public class TracingLetterView extends View {
         processingPaint.setStrokeJoin(Paint.Join.ROUND);
         processingPaint.setPathEffect(new CornerPathEffect(ScreenUtils.getInstance().dpToPx(getContext(),60)));
         processingPaint.setColor(typedArray.getColor(R.styleable.TracingLetterView_strokeColor, Color.parseColor("#DA609F")));
+
+        needInstruct = typedArray.getBoolean(R.styleable.TracingLetterView_instructionMode, true);
         typedArray.recycle();
 
         toleranceArea = res.getDimension(R.dimen.dp_30);
@@ -133,11 +136,9 @@ public class TracingLetterView extends View {
         try {
             anchorBitmap = getBitmapByAssetName("crayon.png");
             letterBitmap = getBitmapByAssetName(letterAssets);
-            /*
-            Bitmap traceBitmap = getBitmapByAssetName(tracingAssets);
-            Canvas canvas = new Canvas(letterBitmap);
-            canvas.drawBitmap(traceBitmap, 0, 0, mPaint);
-            traceBitmap.recycle();*/
+            if (needInstruct) {
+                traceBitmap = getBitmapByAssetName(tracingAssets);
+            }
 
             letterRect = new Rect(0, 0, letterBitmap.getWidth(), letterBitmap.getHeight());
 
@@ -200,11 +201,19 @@ public class TracingLetterView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        // draw Letter
         canvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
-        canvas.drawPoints(pathPoints, pointPaint);
+        if (needInstruct) {
+            canvas.drawBitmap(traceBitmap, letterRect, viewRect, mPaint);
+        } else {
+            // draw points along path
+            canvas.drawPoints(pathPoints, pointPaint);
+        }
+        // draw all finished paths
         for (Path item : paths) {
             canvas.drawPath(item, processingPaint);
         }
+        // draw the current unfinished path
         if (currentDrawingPath != null) canvas.drawPath(currentDrawingPath, processingPaint);
         // draw anchor
         scaleRect.set(
@@ -459,8 +468,6 @@ public class TracingLetterView extends View {
                 letterBitmap = getBitmapByAssetName(letterAssets);
                 paths.clear();
                 mPaint.setColorFilter(null);
-                //drawingCanvas.drawColor(0, PorterDuff.Mode.CLEAR);
-                //drawingCanvas.drawBitmap(letterBitmap, letterRect, viewRect, mPaint);
                 invalidate();
             }
         });
@@ -522,17 +529,17 @@ public class TracingLetterView extends View {
         scaleAnimator.start();
     }
 
-
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-
+        if (traceBitmap != null) {
+            traceBitmap.recycle();
+            traceBitmap = null;
+        }
         if (anchorBitmap != null) {
             anchorBitmap.recycle();
             anchorBitmap = null;
         }
-
-
         if (letterBitmap != null) {
             letterBitmap.recycle();
             letterBitmap = null;
