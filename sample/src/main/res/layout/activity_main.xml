@@ -13,6 +13,7 @@
         app:pointColor="@color/colorAccent"
         app:instructionMode="false"
         app:strokeColor="@color/colorPrimary"
+        app:anchorDrawable="@drawable/star"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHeight_percent="0.8"
         app:layout_constraintLeft_toLeftOf="parent"

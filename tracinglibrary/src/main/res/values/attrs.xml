@@ -4,5 +4,6 @@
         <attr name="strokeColor" format="color|reference"></attr>
         <attr name="pointColor" format="reference|color"></attr>
         <attr name="instructionMode" format="boolean"></attr>
+        <attr name="anchorDrawable" format="reference"></attr>
     </declare-styleable>
 </resources>
