@@ -71,7 +71,6 @@ public class TracingLetterView extends View {
     private RectF viewRect = null;
     private Rect anchorRect;
     private RectF scaleRect = new RectF();
-    private float scale = 0f;
     private float anchorScale = 0f;
     private float[] pathPoints;
 
@@ -188,7 +187,6 @@ public class TracingLetterView extends View {
 
             processingPaint.setStrokeWidth(viewHeight / 9f);
             viewRect = new RectF();
-            scale = viewHeight / (letterBitmap.getHeight() * 1f);
             viewRect.set(0, 0, viewWidth, viewHeight);
             anchorScale = viewHeight / (8.5f * anchorBitmap.getHeight());
 
@@ -282,8 +280,7 @@ public class TracingLetterView extends View {
     }
 
     private boolean isTracingStartPoint(float x, float y) {
-        boolean rightArea =
-                Math.abs(anchorPos.x + anchorBitmap.getWidth() - x) < toleranceArea
+        boolean rightArea = Math.abs(anchorPos.x + anchorBitmap.getWidth() - x) < toleranceArea
                         && Math.abs(anchorPos.y - y) < anchorBitmap.getHeight() + toleranceArea;
         boolean leftArea = Math.abs(x - anchorPos.x) < toleranceArea
                 && Math.abs(y - anchorPos.y) < toleranceArea;
