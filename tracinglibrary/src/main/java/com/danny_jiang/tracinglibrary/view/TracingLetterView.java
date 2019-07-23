@@ -106,7 +106,7 @@ public class TracingLetterView extends View {
         if (needInstruct) {
             toleranceArea = 60;
         } else {
-            toleranceArea = 20;
+            toleranceArea = 50;
         }
         typedArray.recycle();
 
@@ -277,8 +277,12 @@ public class TracingLetterView extends View {
     }
 
     private boolean isTracingStartPoint(float x, float y) {
-        return Math.abs(x - anchorPos.x) < toleranceArea
+        boolean rightArea =
+                Math.abs(anchorPos.x + anchorBitmap.getWidth() - x) < toleranceArea
+                        && Math.abs(anchorPos.y - y) < anchorBitmap.getHeight() + toleranceArea;
+        boolean leftArea = Math.abs(x - anchorPos.x) < toleranceArea
                 && Math.abs(y - anchorPos.y) < toleranceArea;
+        return leftArea || rightArea;
     }
 
     @Override
