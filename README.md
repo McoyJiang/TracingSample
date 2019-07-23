@@ -42,16 +42,23 @@ implementation project(path: ':tracinglibrary')
   app:strokeColor="@color/colorPrimary"
   app:anchorDrawable="@drawable/star"
 ```  
-#### 4. or you can set these propertise in Activity
+
+#### 4. set which letter you want to trace
+```
+letterView = findViewById(R.id.letter);
+letterView.setLetterChar(LetterFactory.A);
+```
+
+#### 5. set propertise in Activity dynamically
 
 ```java
-    letterView = findViewById(R.id.letter);
-    letterView.setLetterChar(LetterFactory.A);
     letterView.setPointColor(Color.BLUE);
     letterView.setInstructMode(true);    
 ```
 
-#### 5. set tracing progress listener
+
+
+#### 6. set tracing progress listener
 ```
 letterView.setTracingListener(new TracingLetterView.TracingListener() {
             @Override
